@@ -1,0 +1,81 @@
+{
+  "Comment": "Pipeline Batch SIRA - Reto 2 Big Data: Limpieza y Union inicial seguida de dos ramas en paralelo (Gold)",
+  "StartAt": "LimpiezaYUnionSIRA",
+  "States": {
+    "LimpiezaYUnionSIRA": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::glue:startJobRun.sync",
+      "Parameters": {
+        "JobName": "sira-limpieza-y-union"
+      },
+      "Retry": [
+        {
+          "ErrorEquals": [
+            "States.TaskFailed",
+            "Glue.AWSGlueException"
+          ],
+          "IntervalSeconds": 30,
+          "MaxAttempts": 1,
+          "BackoffRate": 2.0
+        }
+      ],
+      "Catch": [
+        {
+          "ErrorEquals": [
+            "States.ALL"
+          ],
+          "Next": "PipelineFallido"
+        }
+      ],
+      "Next": "ProcesamientoParaleloGold"
+    },
+    "ProcesamientoParaleloGold": {
+      "Type": "Parallel",
+      "Branches": [
+        {
+          "StartAt": "RamaEstresHidrico",
+          "States": {
+            "RamaEstresHidrico": {
+              "Type": "Task",
+              "Resource": "arn:aws:states:::glue:startJobRun.sync",
+              "Parameters": {
+                "JobName": "sira-agg-estres-hidrico"
+              },
+              "End": true
+            }
+          }
+        },
+        {
+          "StartAt": "RamaViabilidadSatelital",
+          "States": {
+            "RamaViabilidadSatelital": {
+              "Type": "Task",
+              "Resource": "arn:aws:states:::glue:startJobRun.sync",
+              "Parameters": {
+                "JobName": "sira-agg-viabilidad-satelital"
+              },
+              "End": true
+            }
+          }
+        }
+      ],
+      "Catch": [
+        {
+          "ErrorEquals": [
+            "States.ALL"
+          ],
+          "Next": "PipelineFallido"
+        }
+      ],
+      "Next": "PipelineExitoso"
+    },
+    "PipelineExitoso": {
+      "Type": "Succeed"
+    },
+    "PipelineFallido": {
+      "Type": "Fail",
+      "Error": "SiraGlueJobExecutionFailed",
+      "Cause": "Uno de los trabajos de AWS Glue falló durante la ejecución del pipeline."
+    }
+  }
+}

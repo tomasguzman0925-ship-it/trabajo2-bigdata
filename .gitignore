@@ -1,6 +1,37 @@
+# Python
 __pycache__/
-*.pyc
+*.py[cod]
+*$py.class
+.venv/
+venv/
+env/
+
+# Datos y archivos pesados
+data/
+*.csv
+*.csv.gz
+*.parquet
+*.zip
+*.tar.gz
+*.mp4
+
+# Muestra de escenas que necesita el productor de la parte B
+!parteB_streaming/productor/escenas_semilla.csv
+
+# Credenciales
 .env
 *.env
+
+# Editores y sistema operativo
+.idea/
+.vscode/
+*.swp
+*.swo
 .DS_Store
 Thumbs.db
+
+# Documentos internos del equipo (no van al repositorio)
+docs/
+PLAN_*.md
+GUIA_*.md
+SI7006-262-trabajo2.pdf
