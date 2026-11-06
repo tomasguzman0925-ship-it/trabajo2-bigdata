@@ -9,7 +9,7 @@
   * Cristian Miguel Gómez Salazar (`cmgomezs@eafit.edu.co`)
   * Tomás Guzmán Tapias (`tguzmant@eafit.edu.co`)
   * Alejandro Jiménez Lopera (`ajimenezl3@eafit.edu.co`)
-  * Santiago Vélez Casallas (`svelezc@eafit.edu.co`)
+  
 * **Región de despliegue en AWS:** `us-east-2` (Ohio)
 * **ID de Cuenta AWS:** `929570730700`
 * **Bucket S3 Principal:** `s3://trabajo2-sira-bigdata-929570730700/`
