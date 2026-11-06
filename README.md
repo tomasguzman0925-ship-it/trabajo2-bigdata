@@ -9,7 +9,7 @@ Curso SI7006/SI6003 Almacenamiento y Procesamiento de Grandes Datos, Universidad
 - Cristian Miguel Gómez Salazar (cmgomezs@eafit.edu.co)
 - Tomás Guzmán Tapias (tguzmant@eafit.edu.co)
 - Alejandro Jiménez Lopera (ajimenezl3@eafit.edu.co)
-- Santiago Vélez Casallas (svelezc@eafit.edu.co)
+
 
 **Video (YouTube):** _completar_
 
