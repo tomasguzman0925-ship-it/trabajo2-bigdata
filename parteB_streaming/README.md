@@ -1,5 +1,7 @@
 # Parte B: streaming con Kinesis, Lambda y DynamoDB
 
+Esta parte usa escenas de los satélites Landsat 8 y 9, los mismos de los que dependen los índices de SIRA, el proyecto integrador.
+
 - [Resumen](#resumen)
 - [Cómo funciona](#cómo-funciona)
 - [Paso a paso](#paso-a-paso)
@@ -9,9 +11,7 @@
   - [Bloque C: ensayo, corrida final y conteos](#bloque-c-ensayo-corrida-final-y-conteos)
 - [Resultados de la corrida final](#resultados-de-la-corrida-final)
 - [Prueba local sin AWS](#prueba-local-sin-aws)
-- [Qué mostrar en el video](#qué-mostrar-en-el-video)
 - [Borrar todo](#borrar-todo)
-- [Preguntas de la sustentación](#preguntas-de-la-sustentación)
 - [Uso de IA](#uso-de-ia)
 
 ---
@@ -292,7 +292,6 @@ python3 contar.py --bucket $BUCKET
 
 **Si algo no cuadra o sale un error,** antes de seguir:
 - Mira los logs: Lambda → `landsat-ventanas` → **Monitor** → **View CloudWatch logs** → el log stream más reciente.
-- Me pasas lo que diga.
 
 Si cuadró y las ventanas suman lo mismo que los únicos, deja las tablas y `crudos/` vacíos para la corrida que se graba. Esto borra los datos, no las tablas. Si limpias antes de que se cierre la última ventana, esa ventana llega después y queda en `landsat_ventanas`; en ese caso espera dos minutos y vuelve a limpiar:
 
@@ -316,7 +315,7 @@ Mientras corre (6 minutos), muestra y explica:
 - **S3** → `landsat-trabajo2-531640467230` → `crudos/`, donde van apareciendo carpetas `AAAA/MM/DD/HH/` con archivos.
 - **Lambda** → **Monitor** → **View CloudWatch logs**, un log con `"final": true` y el `estado` de la ventana.
 
-✅ **Debes ver al final:** un resumen con `"publicados": 7200`, `"unicos": 6524`, `"repetidos": 328`, `"invalidos": 348` y `"no_publicados": 0`. Esos números salieron de la simulación local y deberían repetirse, porque el productor usa una semilla fija. Si `no_publicados` es mayor que 0, los números cambian un poco, pero igual cuadran.
+✅ **Debes ver al final:** un resumen con `"publicados": 7200`, `"unicos": 6524`, `"repetidos": 328`, `"invalidos": 348` y `"no_publicados": 0`. Son los números de la corrida real, y se repiten porque el productor usa una semilla fija. Si `no_publicados` es mayor que 0, los números cambian un poco, pero igual cuadran.
 
 #### Paso 13: Conteos y la consulta
 
@@ -350,18 +349,71 @@ Si CloudShell se reinició y `$BUCKET` quedó vacío, vuelve a escribir `BUCKET=
 
 ## Resultados de la corrida final
 
-_completar con la corrida del 4 de noviembre de 2026 en `us-east-1`._
+Corrida del 5 de noviembre de 2026 en `us-east-1`, de 12:07:12 a 12:13:12 UTC.
 
 Salida de `python3 contar.py --bucket landsat-trabajo2-531640467230`:
 
 ```text
-(pegar aquí la salida completa de contar.py)
+CONTEOS
+  Publicados por el productor ........   7200
+  Únicos procesados (landsat_vistos) .   6524   (el productor envió 6524)
+  Repetidos descartados ..............    328   (el productor envió 328)
+  Inválidos descartados ..............    348   (el productor envió 348)
+  Únicos + repetidos + inválidos .....   7200   -> CUADRA
+  Eventos crudos en S3 ...............   7200   (7 archivos de Firehose)
+  Suma de conteos de las ventanas ....   6524   (debe ser igual a los únicos)
+
+INVÁLIDOS POR MOTIVO (descartados / enviados)
+  falta_campo:land_cloud_cover        54 / 54
+  falta_campo:scene_id                72 / 72
+  nubosidad_fuera_de_rango            75 / 75
+  satelite_invalido                   75 / 75
+  wrs_path_invalido                   72 / 72
+
+VENTANAS DE UN MINUTO (Query a landsat_ventanas por satélite)
+  Landsat 8  2026-11-05T12:07:00Z   381 escenas  nubosidad promedio  41.21 %
+  Landsat 8  2026-11-05T12:08:00Z   478 escenas  nubosidad promedio  39.75 %
+  Landsat 8  2026-11-05T12:09:00Z   499 escenas  nubosidad promedio  41.20 %
+  Landsat 8  2026-11-05T12:10:00Z   503 escenas  nubosidad promedio  41.11 %
+  Landsat 8  2026-11-05T12:11:00Z   531 escenas  nubosidad promedio  41.91 %
+  Landsat 8  2026-11-05T12:12:00Z   502 escenas  nubosidad promedio  40.80 %
+  Landsat 8  2026-11-05T12:13:00Z   100 escenas  nubosidad promedio  37.65 %
+  Landsat 9  2026-11-05T12:07:00Z   491 escenas  nubosidad promedio  36.83 %
+  Landsat 9  2026-11-05T12:08:00Z   605 escenas  nubosidad promedio  39.11 %
+  Landsat 9  2026-11-05T12:09:00Z   578 escenas  nubosidad promedio  41.28 %
+  Landsat 9  2026-11-05T12:10:00Z   593 escenas  nubosidad promedio  39.99 %
+  Landsat 9  2026-11-05T12:11:00Z   555 escenas  nubosidad promedio  42.62 %
+  Landsat 9  2026-11-05T12:12:00Z   598 escenas  nubosidad promedio  37.58 %
+  Landsat 9  2026-11-05T12:13:00Z   110 escenas  nubosidad promedio  42.07 %
+
+PREGUNTA: ¿qué satélite entregó escenas más despejadas y en qué minuto?
+  Landsat 8: 2994 escenas, nubosidad promedio 40.89 %; su minuto más despejado fue 2026-11-05T12:13:00Z (37.65 %)
+  Landsat 9: 3530 escenas, nubosidad promedio 39.68 %; su minuto más despejado fue 2026-11-05T12:07:00Z (36.83 %)
 ```
 
-Resumen del productor (`publicados.json`; se descarga de CloudShell con **Actions → Download file** y el nombre `publicados.json`):
+**Respuesta:** Landsat 9 entregó las escenas más despejadas, con 39,68 % de nubosidad promedio frente a 40,89 % de Landsat 8. La primera y la última ventana están incompletas, porque la corrida empezó a las 12:07:12 y terminó a las 12:13:12, y la última solo tiene 12 segundos de eventos. El 37,65 % de Landsat 8 sale de esa última ventana, con 100 escenas.
+
+Resumen del productor (`publicados.json`):
 
 ```json
-(pegar aquí publicados.json)
+{
+  "stream": "landsat-escenas",
+  "inicio_utc": "2026-11-05T12:07:12+00:00",
+  "fin_utc": "2026-11-05T12:13:12+00:00",
+  "segundos": 360.0,
+  "publicados": 7200,
+  "unicos": 6524,
+  "repetidos": 328,
+  "invalidos": 348,
+  "invalidos_por_motivo": {
+    "falta_campo:land_cloud_cover": 54,
+    "falta_campo:scene_id": 72,
+    "nubosidad_fuera_de_rango": 75,
+    "satelite_invalido": 75,
+    "wrs_path_invalido": 72
+  },
+  "no_publicados": 0
+}
 ```
 
 ---
@@ -376,26 +428,6 @@ python3 parteB_streaming/pruebas/simulacion_local.py
 ```
 
 ✅ **Debes ver:** `Ventanas simuladas: 7; filas en landsat_ventanas: 14; coinciden con el cálculo directo`, la salida de `contar.py` con `7200`, `6524`, `328`, `348` y `-> CUADRA`, y al final `limpiar.py dejó las tablas y crudos/ vacíos`.
-
----
-
-## Qué mostrar en el video
-
-La parte B en unos 5 minutos, con las consolas grandes (zoom del navegador al 125 %):
-
-1. **El stream:** Kinesis → `landsat-escenas` (1 shard) y su pestaña Monitoring.
-2. **El productor publicando:** CloudShell durante la corrida, y el código de `plan_second` (repetidos e inválidos a propósito).
-3. **La aplicación de ventanas:**
-   - El código de la Lambda (los dos filtros y `isFinalInvokeForWindow`).
-   - El disparador con *Tumbling window duration 60*.
-   - Un log con `"final": true`.
-4. **Resultados en DynamoDB:** `landsat_ventanas` y la Query por satélite, que responde la pregunta.
-5. **Inválidos con su motivo:** `landsat_invalidos`.
-6. **Crudos en S3:** los archivos de `crudos/`. Descarga uno y ábrelo con el Bloc de notas para que se vean los eventos tal como llegaron.
-7. **Conteos:** la salida de `contar.py` (publicados = únicos + repetidos + inválidos → CUADRA).
-8. **CloudFormation sin stacks** en `us-east-1`, en esta cuenta y en la de la parte A.
-
-No muestres credenciales: no corras `aws configure list` ni `env` en CloudShell.
 
 ---
 
@@ -417,21 +449,6 @@ Los pasos 1 a 5 son los que importan para el costo; el 6 y el 7 dejan la cuenta 
 
 ---
 
-## Preguntas de la sustentación
-
-- **¿Qué es un shard y por qué uno solo?** Es una fila ordenada del stream, con capacidad propia. La ventana de Lambda se calcula por shard; con uno hay un solo resultado por minuto y satélite. Con más shards habría un resultado parcial por shard que habría que sumar.
-- **¿En qué se diferencia de SQS (trabajo 1)?** SQS entrega cada mensaje a un consumidor y lo borra. Kinesis lo guarda y cada consumidor lo lee completo: por eso tenemos dos consumidores del mismo stream.
-- **¿Qué es una ventana tumbling?** Ventanas de tamaño fijo que no se solapan. Las nuestras van por la hora de llegada al stream, no por la hora del evento.
-- **¿Cómo evitan contar dos veces un repetido?** Con una escritura condicional en `landsat_vistos` (`attribute_not_exists(event_id)`): solo el primer registro de cada `event_id` la logra.
-- **¿Y si Lambda reintenta un lote?** El reintento trae el mismo sequence number que quedó guardado con el `event_id`, así que se reconoce como el mismo registro y no como un repetido.
-- **¿Por qué primero validar y después deduplicar?** Un evento inválido puede no tener `event_id` o tener datos que no se deben guardar; validar primero garantiza que cada registro cae en un solo grupo.
-- **¿Por qué Firehose se crea antes del productor?** Porque empieza a leer desde `LATEST`: lo que entró antes de crearlo no lo ve.
-- **¿Por qué cuadran los conteos?** Cada registro termina en exactamente una de tres tablas con llave única. Además, Firehose guarda todos los registros y su total coincide con lo publicado.
-- **¿Qué cambiarían con mucho más volumen?** Más shards (cada uno soporta hasta 1.000 registros o 1 MB por segundo de escritura) y sumar los resultados parciales de cada shard, o pasar a Flink, que agrupa por clave entre shards.
-- **¿Cuánto costó?** Unos US$0,10–0,15. Lo único que cobra por hora es el shard (US$0,015 por hora); por eso el stream se creó justo antes de usarlo y se borró al terminar.
-
----
-
 ## Uso de IA
 
-Esta parte se hizo con apoyo de un asistente de IA generativa. La IA generó el código (`productor.py`, `lambda_function.py`, `contar.py`, `limpiar.py`, la política IAM y `pruebas/simulacion_local.py`) y la primera versión de esta guía, a partir del enunciado y del código del trabajo 1. El equipo creó todos los recursos a mano en la consola, ejecutó el ensayo y la corrida final, revisó el código y la guía, y explica cada parte.
+Esta parte se hizo con apoyo de un asistente de IA generativa. La IA generó el código (`productor.py`, `lambda_function.py`, `contar.py`, `limpiar.py`, la política IAM y `pruebas/simulacion_local.py`), la primera versión de esta guía y el guion de esta parte del video, a partir del enunciado y del código del trabajo 1, e hizo los cortes de la grabación. El equipo creó todos los recursos a mano en la consola, ejecutó el ensayo y la corrida final, grabó el video, revisó el código y la guía, y explica cada parte.
